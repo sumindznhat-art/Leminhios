@@ -1,5 +1,5 @@
 /* ============================================================
-   AUTH.JS — ĐĂNG NHẬP / ĐĂNG KÝ / KEY / NẠP TIỀN (XHR)
+   AUTH.JS — ĐĂNG KÝ / ĐĂNG NHẬP / KEY / NẠP TIỀN
    ============================================================ */
 
 function _$(id) { return document.getElementById(id); }
@@ -12,7 +12,6 @@ function _setLoading(spinnerId, btnTextId, text, loading) {
 function _setError(msg) { var b = _$('loginError'); if (b) b.textContent = msg || ''; }
 function _setKeyError(msg) { var b = _$('keyErr'); if (b) b.textContent = msg || ''; }
 
-/* ==================== LẤY IP ==================== */
 var _cachedIP = null;
 function getIP() {
   if (_cachedIP) return Promise.resolve(_cachedIP);
@@ -22,8 +21,8 @@ function getIP() {
     xhr.timeout = 3000;
     xhr.onload = function() {
       try {
-        var data = JSON.parse(xhr.responseText);
-        if (data.ip) { _cachedIP = data.ip; return resolve(data.ip); }
+        var d = JSON.parse(xhr.responseText);
+        if (d.ip) { _cachedIP = d.ip; return resolve(d.ip); }
       } catch(e) {}
       resolve('unknown');
     };
@@ -33,7 +32,6 @@ function getIP() {
   });
 }
 
-/* ==================== SWITCH TAB ==================== */
 function switchTab(tab) {
   _setError('');
   var tl = _$('tabLogin'), tr = _$('tabReg');
@@ -80,9 +78,7 @@ function doRegister() {
         _setError('❌ ' + ((data && data.error) || 'Đăng ký thất bại!'));
       }
     })
-    .catch(function(err) {
-      _setError('❌ ' + err.message);
-    })
+    .catch(function(err) { _setError('❌ ' + err.message); })
     .then(function() {
       _setLoading('regSpinner', 'btnRegText', '<i class="fa-solid fa-user-plus"></i> ĐĂNG KÝ', false);
     });
@@ -108,9 +104,7 @@ function doLogin() {
         _setError('❌ ' + ((data && data.error) || 'Sai email hoặc mật khẩu!'));
       }
     })
-    .catch(function(err) {
-      _setError('❌ ' + err.message);
-    })
+    .catch(function(err) { _setError('❌ ' + err.message); })
     .then(function() {
       _setLoading('loginSpinner', 'btnLoginText', '<i class="fa-solid fa-right-to-bracket"></i> ĐĂNG NHẬP', false);
     });
@@ -138,19 +132,14 @@ function activateKey() {
     .then(function(data) {
       if (data && data.success) {
         alert('✅ KÍCH HOẠT THÀNH CÔNG!\n\n🔑 Key: ' + key +
-          (data.days ? '\n⏱ +' + data.days + ' ngày' : '') +
-          (data.new_expiry ? '\n📅 Hạn mới: ' + new Date(Number(data.new_expiry)).toLocaleString('vi-VN') : ''));
+          (data.days ? '\n⏱ +' + data.days + ' ngày' : ''));
         if (typeof closeModal === 'function') closeModal('keyModal');
-        apiGetUser().then(function() {
-          if (typeof renderAll === 'function') renderAll();
-        });
+        apiGetUser().then(function() { if (typeof renderAll === 'function') renderAll(); });
       } else {
         _setKeyError('❌ ' + ((data && data.error) || 'Key không hợp lệ!'));
       }
     })
-    .catch(function(err) {
-      _setKeyError('❌ ' + err.message);
-    });
+    .catch(function(err) { _setKeyError('❌ ' + err.message); });
 }
 
 /* ==================== NẠP TIỀN ==================== */
@@ -172,12 +161,9 @@ function submitDeposit() {
         alert('❌ ' + ((data && data.error) || 'Lỗi gửi yêu cầu'));
       }
     })
-    .catch(function(err) {
-      alert('❌ ' + err.message);
-    });
+    .catch(function(err) { alert('❌ ' + err.message); });
 }
 
-/* ==================== EXPOSE ==================== */
 window.getIP = getIP;
 window.switchTab = switchTab;
 window.doRegister = doRegister;
