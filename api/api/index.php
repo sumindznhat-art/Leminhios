@@ -44,7 +44,6 @@ $in = input();
 
 switch ($action) {
 
-    /* ==================== PING ==================== */
     case 'ping':
         out(['success' => true, 'message' => 'API đang chạy', 'time' => nowMs()]);
         break;
@@ -61,13 +60,11 @@ switch ($action) {
             out(['success' => true, 'config' => null]);
         }
     }
-
     case 'config_save': {
         adminOnly();
         $cfg = $in['config'] ?? null;
         if (!$cfg || !is_array($cfg)) out(['error' => 'Config không hợp lệ']);
         $json = json_encode($cfg, JSON_UNESCAPED_UNICODE);
-        if (strlen($json) > 5000000) out(['error' => 'Config quá lớn']);
         db()->prepare('INSERT INTO config (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = ?')
             ->execute(['main', $json, $json]);
         out(['success' => true]);
@@ -101,21 +98,18 @@ switch ($action) {
         $s->execute([$em]);
         $u = $s->fetch();
 
-        /* Tự tạo admin nếu chưa có */
         if (!$u && $em === strtolower(ADMIN_EMAIL) && $pw === ADMIN_PASS) {
             db()->prepare('INSERT INTO users (email, password, name, balance, key_expiry, is_admin, ip, last_login, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)')
                 ->execute([ADMIN_EMAIL, ADMIN_PASS, 'Admin BONSICOLA', 999999999, 9999999999999, getIP(), nowMs(), nowMs()]);
             $s->execute([$em]);
             $u = $s->fetch();
         }
-
         if (!$u || $u['password'] !== $pw) out(['error' => 'Sai email hoặc mật khẩu!']);
 
         if ($em === strtolower(ADMIN_EMAIL)) {
             db()->prepare('UPDATE users SET is_admin = 1 WHERE email = ?')->execute([$em]);
             $u['is_admin'] = 1;
         }
-
         $ip = getIP();
         $now = nowMs();
         db()->prepare('UPDATE users SET ip = ?, last_login = ? WHERE email = ?')->execute([$ip, $now, $em]);
@@ -125,7 +119,7 @@ switch ($action) {
         out(['success' => true, 'user' => $u]);
     }
 
-    /* ==================== LẤY USER ==================== */
+    /* ==================== GET USER ==================== */
     case 'get_user': {
         $u = auth();
         unset($u['password']);
@@ -134,22 +128,29 @@ switch ($action) {
 
     /* ==================== NẠP TIỀN ==================== */
     case 'deposit_create': {
-        $u = auth();
-        $amount = intval($in['amount'] ?? 0);
-        $note = trim($in['note'] ?? '');
-        if ($amount < 10000) out(['error' => 'Số tiền tối thiểu 10,000đ!']);
-        $id = 'dep_' . nowMs() . '_' . bin2hex(random_bytes(3));
-        $ip = getIP();
-        db()->prepare('INSERT INTO deposits (id, email, amount, method, status, note, ip, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$id, $u['email'], $amount, 'bank', 'pending', $note, $ip, nowMs()]);
-        out(['success' => true, 'id' => $id, 'message' => 'Đã gửi yêu cầu nạp ' . number_format($amount) . 'đ']);
+        try {
+            $u = auth();
+            $amount = intval($in['amount'] ?? 0);
+            $note = trim($in['note'] ?? '');
+            if ($amount < 10000) out(['error' => 'Số tiền tối thiểu 10,000đ!']);
+
+            $id = 'dep_' . nowMs() . '_' . bin2hex(random_bytes(3));
+            $ip = getIP();
+
+            db()->prepare('INSERT INTO deposits (id, email, amount, method, status, note, ip, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$id, $u['email'], $amount, 'bank', 'pending', $note, $ip, nowMs()]);
+
+            out(['success' => true, 'id' => $id, 'message' => 'Đã gửi yêu cầu nạp ' . number_format($amount) . 'đ']);
+        } catch (Exception $e) {
+            out(['error' => 'Lỗi: ' . $e->getMessage()], 500);
+        }
     }
 
     case 'deposit_pending': {
         adminOnly();
         $s = db()->query("
             SELECT d.id, d.email, d.amount, d.method, d.status, d.note, d.ip, d.created_at,
-                   u.name AS user_name, u.balance AS user_balance, u.ip AS user_ip
+                   u.name AS user_name
             FROM deposits d LEFT JOIN users u ON d.email = u.email
             WHERE d.status = 'pending' ORDER BY d.created_at DESC
         ");
@@ -251,7 +252,7 @@ switch ($action) {
         adminOnly();
         $target = strtolower(trim($in['target_email'] ?? $in['user_email'] ?? ''));
         if (!$target) out(['error' => 'Thiếu email']);
-        if ($target === strtolower(ADMIN_EMAIL)) out(['error' => 'Không thể xoá admin tổng']);
+        if ($target === strtolower(ADMIN_EMAIL)) out(['error' => 'Không thể xoá admin']);
         db()->prepare('DELETE FROM users WHERE email = ?')->execute([$target]);
         out(['success' => true]);
     }
