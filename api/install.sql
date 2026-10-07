@@ -1,6 +1,7 @@
--- Tạo database (chạy 1 lần)
-CREATE DATABASE IF NOT EXISTS bonsicola CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE bonsicola;
+-- ============================================================
+-- BONSICOLA - DATABASE STRUCTURE
+-- Chạy trong phpMyAdmin → chọn DB keckyxd_bonsicola → SQL → Go
+-- ============================================================
 
 -- Bảng users
 CREATE TABLE IF NOT EXISTS users (
@@ -31,8 +32,9 @@ CREATE TABLE IF NOT EXISTS `keys` (
   used_at BIGINT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Bảng deposits
-CREATE TABLE IF NOT EXISTS deposits (
+-- Bảng deposits (QUAN TRỌNG — NẾU THIẾU SẼ LỖI NẠP TIỀN)
+DROP TABLE IF EXISTS deposits;
+CREATE TABLE deposits (
   id VARCHAR(50) PRIMARY KEY,
   email VARCHAR(150) NOT NULL,
   amount BIGINT DEFAULT 0,
@@ -59,13 +61,13 @@ CREATE TABLE IF NOT EXISTS history (
   INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Bảng config (lưu config toàn site)
+-- Bảng config
 CREATE TABLE IF NOT EXISTS config (
   k VARCHAR(100) PRIMARY KEY,
   v LONGTEXT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Tạo admin mặc định
+-- Tạo admin mặc định (nếu chưa có)
 INSERT IGNORE INTO users (email, password, name, balance, key_expiry, is_admin, ip, last_login, created_at)
 VALUES (
   'leminhdz@gmail.com',
@@ -78,3 +80,6 @@ VALUES (
   UNIX_TIMESTAMP()*1000,
   UNIX_TIMESTAMP()*1000
 );
+
+-- Xong
+SELECT 'DATABASE OK' AS status;
