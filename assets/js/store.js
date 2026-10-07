@@ -1,11 +1,11 @@
 /* ============================================================
-   STORE.JS — API XMLHttpRequest (chạy mọi thiết bị)
+   STORE.JS — API XMLHttpRequest + Debug
    ============================================================ */
 
-const ADMIN_EMAIL = 'leminhdz@gmail.com';
-const AVATAR_KEY = 'bonsicola_avatar';
-const SESS_KEY = 'bonsicola_session';
-const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect fill='%23e0f2fe' width='200' height='200'/><text x='50%25' y='56%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>🎀</text></svg>";
+var ADMIN_EMAIL = 'leminhdz@gmail.com';
+var AVATAR_KEY = 'bonsicola_avatar';
+var SESS_KEY = 'bonsicola_session';
+var DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect fill='%23e0f2fe' width='200' height='200'/><text x='50%25' y='56%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>🎀</text></svg>";
 
 function now() { return Date.now(); }
 function fmt(n) { return (Number(n) || 0).toLocaleString('vi-VN') + 'đ'; }
@@ -19,7 +19,7 @@ function esc(s) {
 }
 function getToolImage(t) { return t ? (t.image || t.image_base64 || '') : ''; }
 
-/* ==================== API ==================== */
+/* ==================== API (XHR — FIX iOS) ==================== */
 function api(action, params, method) {
   params = params || {};
   method = method || 'POST';
@@ -31,27 +31,41 @@ function api(action, params, method) {
     if (base.indexOf('http') !== 0) base = window.location.origin + base;
     var url = base.replace(/\/$/, '') + '/index.php?action=' + encodeURIComponent(action);
 
+    console.log('🌐 API →', action, '|', url);
+
     var xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.timeout = 15000;
+    xhr.timeout = 20000;
 
     xhr.onload = function() {
+      console.log('✅ ' + action + ' [' + xhr.status + ']', (xhr.responseText || '').slice(0, 300));
+
       var text = xhr.responseText || '';
       if (!text || text.trim() === '') {
-        return resolve({ success: false, error: 'Server trả về rỗng' });
+        return resolve({ success: false, error: 'Server rỗng — kiểm tra bảng DB' });
       }
+
       try {
-        resolve(JSON.parse(text));
+        var data = JSON.parse(text);
+        if (data.error) console.error('❌ API Error:', data.error, data.code || '');
+        resolve(data);
       } catch (e) {
-        console.error('Non-JSON:', text.slice(0, 300));
-        resolve({ success: false, error: 'Server lỗi (không phải JSON)' });
+        console.error('❌ Non-JSON:', text);
+        resolve({ success: false, error: 'Server lỗi: ' + text.slice(0, 100) });
       }
     };
 
-    xhr.onerror = function() { resolve({ success: false, error: 'Không kết nối server' }); };
-    xhr.ontimeout = function() { resolve({ success: false, error: 'Server không phản hồi' }); };
+    xhr.onerror = function() {
+      console.error('❌ Network error:', url);
+      resolve({ success: false, error: 'Không kết nối server (kiểm tra mạng/domain)' });
+    };
+
+    xhr.ontimeout = function() {
+      console.error('❌ Timeout:', url);
+      resolve({ success: false, error: 'Server không phản hồi (20s)' });
+    };
 
     if (method === 'POST') {
       try { xhr.send(JSON.stringify(params)); }
