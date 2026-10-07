@@ -1,25 +1,25 @@
 /* ============================================================
-   STORE.JS — QUẢN LÝ DỮ LIỆU + GỌI API (XHR - FIX iOS)
+   STORE.JS — API XMLHttpRequest (chạy mọi thiết bị)
    ============================================================ */
 
-const ADMIN_EMAIL  = 'leminhdz@gmail.com';
-const AVATAR_KEY   = 'bonsicola_avatar';
-const SESS_KEY     = 'bonsicola_session';
+const ADMIN_EMAIL = 'leminhdz@gmail.com';
+const AVATAR_KEY = 'bonsicola_avatar';
+const SESS_KEY = 'bonsicola_session';
 const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect fill='%23e0f2fe' width='200' height='200'/><text x='50%25' y='56%25' font-size='90' text-anchor='middle' dominant-baseline='middle'>🎀</text></svg>";
 
 function now() { return Date.now(); }
 function fmt(n) { return (Number(n) || 0).toLocaleString('vi-VN') + 'đ'; }
 function fmtDate(ts) {
   if (!ts) return '—';
-  const d = new Date(Number(ts)), p = n => String(n).padStart(2, '0');
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  var d = new Date(Number(ts)), p = function(n) { return String(n).padStart(2, '0'); };
+  return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
 function esc(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  return String(s || '').replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
 }
 function getToolImage(t) { return t ? (t.image || t.image_base64 || '') : ''; }
 
-/* ==================== API (XMLHttpRequest — FIX iOS) ==================== */
+/* ==================== API ==================== */
 function api(action, params, method) {
   params = params || {};
   method = method || 'POST';
@@ -28,10 +28,7 @@ function api(action, params, method) {
     var base = (window.CONFIG && window.CONFIG.API_BASE) ? window.CONFIG.API_BASE : '';
     if (!base) return resolve({ success: false, error: 'Chưa cấu hình API_BASE' });
 
-    if (base.indexOf('http') !== 0) {
-      base = window.location.origin + base;
-    }
-
+    if (base.indexOf('http') !== 0) base = window.location.origin + base;
     var url = base.replace(/\/$/, '') + '/index.php?action=' + encodeURIComponent(action);
 
     var xhr = new XMLHttpRequest();
@@ -43,26 +40,18 @@ function api(action, params, method) {
     xhr.onload = function() {
       var text = xhr.responseText || '';
       if (!text || text.trim() === '') {
-        console.error('❌ Empty response:', url);
         return resolve({ success: false, error: 'Server trả về rỗng' });
       }
       try {
         resolve(JSON.parse(text));
       } catch (e) {
-        console.error('❌ Non-JSON:', text.slice(0, 300));
-        resolve({ success: false, error: 'Server lỗi (không phải JSON)', raw: text.slice(0, 300) });
+        console.error('Non-JSON:', text.slice(0, 300));
+        resolve({ success: false, error: 'Server lỗi (không phải JSON)' });
       }
     };
 
-    xhr.onerror = function() {
-      console.error('❌ XHR error:', url);
-      resolve({ success: false, error: 'Không kết nối server' });
-    };
-
-    xhr.ontimeout = function() {
-      console.error('❌ XHR timeout:', url);
-      resolve({ success: false, error: 'Server không phản hồi (15s)' });
-    };
+    xhr.onerror = function() { resolve({ success: false, error: 'Không kết nối server' }); };
+    xhr.ontimeout = function() { resolve({ success: false, error: 'Server không phản hồi' }); };
 
     if (method === 'POST') {
       try { xhr.send(JSON.stringify(params)); }
@@ -83,9 +72,7 @@ function getSession() {
   } catch (e) { return null; }
 }
 function setSessionData(email, pass, user) {
-  try {
-    localStorage.setItem(SESS_KEY, JSON.stringify({ email: email, password: pass, user: user, savedAt: Date.now() }));
-  } catch (e) {}
+  try { localStorage.setItem(SESS_KEY, JSON.stringify({ email: email, password: pass, user: user, savedAt: Date.now() })); } catch (e) {}
 }
 function clearSession() { localStorage.removeItem(SESS_KEY); }
 function currentUser() { var s = getSession(); return s ? s.user : null; }
@@ -94,7 +81,7 @@ function refreshUser(user) {
   if (s) { s.user = user; localStorage.setItem(SESS_KEY, JSON.stringify(s)); }
 }
 
-/* ==================== API WRAPPERS ==================== */
+/* ==================== WRAPPERS ==================== */
 function apiGetUser() {
   var s = getSession();
   if (!s) return Promise.resolve({ success: false });
@@ -105,10 +92,6 @@ function apiGetUser() {
     }
     return res;
   });
-}
-function apiKeyActivate(code) {
-  var s = getSession(); if (!s) return Promise.resolve({ success: false });
-  return api('key_activate', { email: s.email, password: s.password, code: code });
 }
 function apiBuyPackage(days, price) {
   var s = getSession(); if (!s) return Promise.resolve({ success: false });
@@ -126,20 +109,14 @@ function applyAvatarEverywhere(src) {
     if (el && src) el.src = src;
   });
 }
-function getAvatarFromStorage() {
-  try { return localStorage.getItem(AVATAR_KEY); } catch (e) { return null; }
-}
+function getAvatarFromStorage() { try { return localStorage.getItem(AVATAR_KEY); } catch (e) { return null; } }
 function setAvatarToStorage(src) {
-  try {
-    if (src) localStorage.setItem(AVATAR_KEY, src);
-    else localStorage.removeItem(AVATAR_KEY);
-  } catch (e) {}
+  try { if (src) localStorage.setItem(AVATAR_KEY, src); else localStorage.removeItem(AVATAR_KEY); } catch (e) {}
 }
 
 /* ==================== EXPOSE ==================== */
 window.api = api;
 window.apiGetUser = apiGetUser;
-window.apiKeyActivate = apiKeyActivate;
 window.apiBuyPackage = apiBuyPackage;
 window.apiUpdateLastApi = apiUpdateLastApi;
 window.getSession = getSession;
