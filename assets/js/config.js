@@ -1,13 +1,21 @@
 /* ============================================================
-   CONFIG.JS — CẤU HÌNH HỆ THỐNG + FULL PORTS
+   CONFIG.JS — TỰ ĐỘNG NHẬN DIỆN DOMAIN HIỆN TẠI
    ============================================================ */
 
+/* Tự động lấy domain hiện tại → chạy mọi domain */
+var _autoBase = (function() {
+  try {
+    var origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+    return origin + '/api';
+  } catch(e) {
+    return '/api';
+  }
+})();
+
 window.CONFIG = {
-  /* ==================== API ==================== */
-  API_BASE: 'https://kiemlua2026.site/api',
+  API_BASE: _autoBase,
   API_TIMEOUT: 15000,
 
-  /* ==================== SITE ==================== */
   site_name: 'TOOL TÀI XỈU MINHIOS',
   site_desc: 'Hệ Thống AI Phân Tích Dữ Liệu Thế Hệ Mới',
   marquee: '⚡ Hệ Thống AI Phân Tích Dữ Liệu Thế Hệ Mới ✦ 🔐 Nâng cấp VIP để mở full tool',
@@ -17,7 +25,6 @@ window.CONFIG = {
   avatar: '',
   music_url: '',
 
-  /* ==================== BANK ==================== */
   bank: {
     name: 'MB Bank',
     account: '0372834763',
@@ -25,7 +32,6 @@ window.CONFIG = {
     qr: ''
   },
 
-  /* ==================== PACKAGES ==================== */
   packages: [
     { id: 'p1d',  name: 'VIP 1 Ngày',  price: 10000,  days: 1  },
     { id: 'p3d',  name: 'VIP 3 Ngày',  price: 30000,  days: 3  },
@@ -33,7 +39,6 @@ window.CONFIG = {
     { id: 'p30d', name: 'VIP 1 Tháng', price: 200000, days: 30 }
   ],
 
-  /* ==================== PORTS ==================== */
   ports: [
     { name:"LC79 Tài Xỉu", slug:"lc79-tx", cat:"taixiu", kind:"view", game_url:"https://lc79.bet", api_url:"https://wtx.tele68.com/v1/tx/sessions", image:"https://files.catbox.moe/ng8pg8.jfif", hot:1, vip:1, is_new:0, enabled:1, maintenance:0, sort:0 },
     { name:"LC79 MD5", slug:"lc79-md5", cat:"taixiu", kind:"view", game_url:"https://lc79.bet", api_url:"https://wtxmd52.tele68.com/v1/txmd5/sessions", image:"https://files.catbox.moe/ng8pg8.jfif", hot:1, vip:1, is_new:0, enabled:1, maintenance:0, sort:1 },
